@@ -43,6 +43,11 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard Barang'),
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
         backgroundColor: const Color(0xFF6A11CB),
       ),
       body: ListView.builder(
@@ -55,6 +60,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        foregroundColor: Colors.white,
         backgroundColor: const Color(0xFF6A11CB),
         onPressed: () => _showItemDialog(),
         child: const Icon(Icons.add),
