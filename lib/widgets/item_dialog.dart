@@ -17,9 +17,7 @@ class _ItemDialogState extends State<ItemDialog> {
   void initState() {
     super.initState();
     nameCtrl = TextEditingController(text: widget.item?.name ?? '');
-    priceCtrl = TextEditingController(
-      text: widget.item?.price.toString() ?? '',
-    );
+    priceCtrl = TextEditingController(text: widget.item?.price ?? '');
   }
 
   @override
@@ -44,7 +42,7 @@ class _ItemDialogState extends State<ItemDialog> {
           const SizedBox(height: 8),
           TextField(
             controller: priceCtrl,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Harga'),
           ),
         ],
@@ -61,9 +59,13 @@ class _ItemDialogState extends State<ItemDialog> {
           ),
           onPressed: () {
             final name = nameCtrl.text.trim();
-            final price = int.tryParse(priceCtrl.text.trim()) ?? 0;
-            if (name.isEmpty || price <= 0) return;
-            Navigator.pop(context, Item(name: name, price: price));
+            final priceStr = priceCtrl.text.trim();
+            // Validate numeric and positive value
+            final priceDouble =
+                double.tryParse(priceStr.replaceAll(',', '.')) ?? 0.0;
+            if (name.isEmpty || priceDouble <= 0) return;
+            final id = widget.item?.id;
+            Navigator.pop(context, Item(id: id, name: name, price: priceStr));
           },
           child: const Text('Simpan'),
         ),

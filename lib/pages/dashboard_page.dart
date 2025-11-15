@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/item.dart';
 import '../widgets/item_card.dart';
 import '../widgets/item_dialog.dart';
+import '../services/api_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -11,11 +12,30 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final List<Item> _items = [
-    Item(name: 'Laptop', price: 15000000),
-    Item(name: 'Smartphone', price: 8000000),
-    Item(name: 'Headset', price: 500000),
-  ];
+  final List<Item> _items = [];
+  final ApiService _api = ApiService();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    setState(() => _isLoading = true);
+    try {
+      final items = await _api.fetchItems();
+      setState(() => _items.clear());
+      setState(() => _items.addAll(items));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal memuat data: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _showItemDialog({Item? item, int? index}) async {
     final result = await showDialog<Item>(
@@ -24,18 +44,38 @@ class _DashboardPageState extends State<DashboardPage> {
     );
 
     if (result != null) {
-      setState(() {
+      try {
         if (index != null) {
-          _items[index] = result;
+          // existing item -> update
+          final updated = await _api.updateItem(result);
+          setState(() => _items[index] = updated);
         } else {
-          _items.add(result);
+          // new item -> create
+          final created = await _api.createItem(result.name, result.price);
+          setState(() => _items.add(created));
         }
-      });
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal menyimpan data: $e')));
+      }
     }
   }
 
-  void _deleteItem(int index) {
-    setState(() => _items.removeAt(index));
+  void _deleteItem(int index) async {
+    final id = _items[index].id;
+    if (id == null) {
+      setState(() => _items.removeAt(index));
+      return;
+    }
+    try {
+      await _api.deleteItem(id);
+      setState(() => _items.removeAt(index));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menghapus data: $e')));
+    }
   }
 
   @override
@@ -50,15 +90,17 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         backgroundColor: const Color(0xFF6A11CB),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: _items.length,
-        itemBuilder: (_, i) => ItemCard(
-          item: _items[i],
-          onEdit: () => _showItemDialog(item: _items[i], index: i),
-          onDelete: () => _deleteItem(i),
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _items.length,
+              itemBuilder: (_, i) => ItemCard(
+                item: _items[i],
+                onEdit: () => _showItemDialog(item: _items[i], index: i),
+                onDelete: () => _deleteItem(i),
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         foregroundColor: Colors.white,
         backgroundColor: const Color(0xFF6A11CB),
